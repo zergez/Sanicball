@@ -1,4 +1,5 @@
 ﻿using Sanicball.Data;
+using Sanicball.Logic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,7 +23,7 @@ namespace Sanicball.UI
         [SerializeField]
         private Text[] aiCharacters;
 
-        private MatchSettings tempSettings = new MatchSettings();
+        private MatchSettings tempSettings = MatchSettings.CreateDefault();
 
         public void Show()
         {
@@ -42,7 +43,7 @@ namespace Sanicball.UI
             var manager = FindObjectOfType<MatchManager>();
             if (manager)
             {
-                tempSettings.CopyValues(manager.CurrentSettings);
+                tempSettings = manager.CurrentSettings;
             }
             UpdateUiFields();
         }
@@ -52,14 +53,14 @@ namespace Sanicball.UI
             var manager = FindObjectOfType<MatchManager>();
             if (manager)
             {
-                manager.CurrentSettings.CopyValues(tempSettings);
-                ActiveData.MatchSettings.CopyValues(tempSettings);
+                manager.RequestSettingsChange(tempSettings);
+                ActiveData.MatchSettings = tempSettings;
             }
         }
 
         public void DefaultSettings()
         {
-            tempSettings = new MatchSettings();
+            tempSettings = MatchSettings.CreateDefault();
             UpdateUiFields();
         }
 
@@ -135,11 +136,14 @@ namespace Sanicball.UI
         public void IncrementAICharacter(int pos)
         {
             int characterId = tempSettings.GetAICharacter(pos);
-            characterId++;
-            if (characterId >= ActiveData.Characters.Length)
+            do
             {
-                characterId = 0;
-            }
+                characterId++;
+                if (characterId >= ActiveData.Characters.Length)
+                {
+                    characterId = 0;
+                }
+            } while (ActiveData.Characters[characterId].hidden);
 
             tempSettings.SetAICharacter(pos, characterId);
             UpdateUiFields();
@@ -148,11 +152,14 @@ namespace Sanicball.UI
         public void DecrementAICharacter(int pos)
         {
             int characterId = tempSettings.GetAICharacter(pos);
-            characterId--;
-            if (characterId < 0)
+            do
             {
-                characterId = ActiveData.Characters.Length - 1;
-            }
+                characterId--;
+                if (characterId < 0)
+                {
+                    characterId = ActiveData.Characters.Length - 1;
+                }
+            } while (ActiveData.Characters[characterId].hidden);
 
             tempSettings.SetAICharacter(pos, characterId);
             UpdateUiFields();
