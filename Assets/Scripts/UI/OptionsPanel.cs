@@ -21,6 +21,7 @@ namespace Sanicball.UI
 
         public Text trails;
         public Text shadows;
+        public Text reflectionQuality;
 
         [Header("Gameplay")]
         public Text controlMode;
@@ -60,14 +61,17 @@ namespace Sanicball.UI
             nickname.text = tempSettings.nickname;
             gameJoltAccount.text = (!string.IsNullOrEmpty(tempSettings.gameJoltToken)) ? "Linked as " + tempSettings.gameJoltUsername : "Not linked";
 
-			if (Screen.resolutions.Length > 0) {
-				if (tempSettings.resolution >= Screen.resolutions.Length)
-					tempSettings.resolution = 0;
-				var res = Screen.resolutions [tempSettings.resolution];
-				resolution.text = res.width + " x " + res.height;
-			} else {
-				resolution.text = "None found!";
-			}
+            if (Screen.resolutions.Length > 0)
+            {
+                if (tempSettings.resolution >= Screen.resolutions.Length)
+                    tempSettings.resolution = 0;
+                var res = Screen.resolutions[tempSettings.resolution];
+                resolution.text = res.width + " x " + res.height;
+            }
+            else
+            {
+                resolution.text = "None found!";
+            }
             fullscreen.text = tempSettings.fullscreen ? "Fullscreen" : "Windowed";
             vsync.text = tempSettings.vsync ? "On" : "Off";
             speedUnit.text = tempSettings.useImperial ? "Imperial" : "Metric";
@@ -75,8 +79,9 @@ namespace Sanicball.UI
             aa.text = tempSettings.aa == 0 ? "Off" : ("x" + tempSettings.aa);
             trails.text = tempSettings.trails ? "On" : "Off";
             shadows.text = tempSettings.shadows ? "On" : "Off";
+            reflectionQuality.text = tempSettings.reflectionQuality.ToString();
 
-            controlMode.text = tempSettings.useOldControls ? "Classic" : "New";
+            controlMode.text = tempSettings.useOldControls ? "Rotate manually" : "Follow velocity";
             cameraSpeedMouse.text = tempSettings.oldControlsMouseSpeed.ToString("n1");
             cameraSpeedKeyboard.text = tempSettings.oldControlsKbSpeed.ToString("n1");
 
@@ -218,6 +223,22 @@ namespace Sanicball.UI
         public void ShadowsToggle()
         {
             tempSettings.shadows = !tempSettings.shadows;
+            UpdateFields();
+        }
+
+        public void ReflectionQualityUp()
+        {
+            int q = (int)tempSettings.reflectionQuality;
+            q = Mathf.Min(q + 1, System.Enum.GetNames(typeof(ReflectionQuality)).Length - 1);
+            tempSettings.reflectionQuality = (ReflectionQuality)q;
+            UpdateFields();
+        }
+
+        public void ReflectionQualityDown()
+        {
+            int q = (int)tempSettings.reflectionQuality;
+            q = Mathf.Max(q - 1, 0);
+            tempSettings.reflectionQuality = (ReflectionQuality)q;
             UpdateFields();
         }
 

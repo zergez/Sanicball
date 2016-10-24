@@ -2,16 +2,11 @@
 using System.Collections;
 using System.Reflection;
 using Lidgren.Network;
+using SanicballCore;
 using UnityEngine;
 
 namespace Sanicball.Logic
 {
-    public class MessageType
-    {
-        public const byte MatchMessage = 0;
-        public const byte InitMessage = 0;
-    }
-
     public class DisconnectArgs : EventArgs
     {
         public string Reason { get; private set; }
@@ -19,6 +14,18 @@ namespace Sanicball.Logic
         public DisconnectArgs(string reason)
         {
             Reason = reason;
+        }
+    }
+
+    public class PlayerMovementArgs : EventArgs
+    {
+        public double Timestamp { get; private set; }
+        public PlayerMovement Movement { get; private set; }
+
+        public PlayerMovementArgs(double timestamp, PlayerMovement movement)
+        {
+            Timestamp = timestamp;
+            Movement = movement;
         }
     }
 
@@ -31,6 +38,7 @@ namespace Sanicball.Logic
         //Settings to use for both serializing and deserializing messages
         private Newtonsoft.Json.JsonSerializerSettings serializerSettings;
 
+        public event EventHandler<PlayerMovementArgs> OnPlayerMovement;
         public event EventHandler<DisconnectArgs> Disconnected;
 
         public OnlineMatchMessenger(NetClient client)
@@ -50,7 +58,17 @@ namespace Sanicball.Logic
             string data = Newtonsoft.Json.JsonConvert.SerializeObject(message, serializerSettings);
             netMessage.Write(data);
 
-            client.SendMessage(netMessage, message.Reliable ? NetDeliveryMethod.ReliableOrdered : NetDeliveryMethod.Unreliable);
+            client.SendMessage(netMessage, NetDeliveryMethod.ReliableOrdered);
+        }
+
+        public void SendPlayerMovement(MatchPlayer player)
+        {
+            NetOutgoingMessage msg = client.CreateMessage();
+            msg.Write(MessageType.PlayerMovementMessage);
+            msg.WriteTime(false);
+            PlayerMovement movement = Logic.PlayerMovement.CreateFromPlayer(player);
+            movement.WriteToMessage(msg);
+            client.SendMessage(msg, NetDeliveryMethod.Unreliable);
         }
 
         public override void UpdateListeners()
@@ -103,6 +121,15 @@ namespace Sanicball.Logic
                                 MethodInfo genericVersion = methodToCall.MakeGenericMethod(message.GetType());
                                 genericVersion.Invoke(this, new object[] { message, timestamp });
 
+                                break;
+
+                            case MessageType.PlayerMovementMessage:
+                                double time = msg.ReadTime(false);
+                                PlayerMovement movement = PlayerMovement.ReadFromMessage(msg);
+                                if (OnPlayerMovement != null)
+                                {
+                                    OnPlayerMovement(this, new PlayerMovementArgs(time, movement));
+                                }
                                 break;
                         }
                         break;
